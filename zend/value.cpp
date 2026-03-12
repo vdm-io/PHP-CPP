@@ -1654,6 +1654,8 @@ Value Value::get(const char *key, int size) const
 
 #if PHP_VERSION_ID < 70100
         zend_class_entry* scope = EG(scope);
+#elif PHP_VERSION_ID >= 80500
+        const zend_class_entry* scope = EG(fake_scope) ? EG(fake_scope) : zend_get_executed_scope();
 #else
         zend_class_entry* scope = EG(fake_scope) ? EG(fake_scope) : zend_get_executed_scope();
 #endif
@@ -1662,8 +1664,11 @@ Value Value::get(const char *key, int size) const
         zval *property = zend_read_property(scope, _val, key, size, 0, &rv);
 #else
         zend_object *zobj = Z_OBJ_P(_val);
+#if PHP_VERSION_ID >= 80500
+        zval *property = zend_read_property((_zend_class_entry*)scope, zobj, key, size, 0, &rv);
+#else
         zval *property = zend_read_property(scope, zobj, key, size, 0, &rv);
-
+#endif
 #endif
         // wrap in value
         return Value(property);
@@ -1734,8 +1739,10 @@ void Value::setRaw(const char *key, int size, const Value &value)
         // update the property
 #if PHP_VERSION_ID < 70100
         zend_class_entry* scope = EG(scope);
-#else
+#elif PHP_VERSION_ID < 80500
         zend_class_entry* scope = EG(fake_scope) ? EG(fake_scope) : zend_get_executed_scope();
+#else
+        const zend_class_entry* scope = EG(fake_scope) ? EG(fake_scope) : zend_get_executed_scope();
 #endif
 #if PHP_VERSION_ID < 80000
         zend_update_property(scope, _val, key, size, value._val);
