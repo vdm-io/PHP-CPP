@@ -104,7 +104,11 @@ bool define(const char *name, size_t size, const Value &value)
 #endif
 
     // register the constant
+#if PHP_VERSION_ID >= 80500
+    return zend_register_constant(&constant) != NULL;
+#else
     return zend_register_constant(&constant) == SUCCESS;
+#endif
 }
 
 /**
