@@ -5,7 +5,7 @@
  *  exist for a class.
  *
  *  @author Emiel Bruijntjes <emiel.bruijntjes@copernica.com>
- *  @copyright 2014 - 2019 Copernica BV
+ *  @copyright 2014 - 2026 Copernica BV
  */
 
 /**
@@ -351,6 +351,13 @@ public:
 #else
     static zend_result cast(ZEND_OBJECT_OR_ZVAL object, zval *retval, int type);
 #endif
+
+    /**
+     *  Get the classname, given an object
+     *  @param  object
+     *  @return zend_string*
+     */
+    static zend_string *getClassName(const zend_object *object);
 
     /**
      *  Function to compare two objects

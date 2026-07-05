@@ -4,7 +4,7 @@
  *  Implementation file for the ClassImpl class
  *
  *  @author Emiel Bruijntjes <emiel.bruijntjes@copernica.com>
- *  @copyright 2014 - 2024 Copernica BV
+ *  @copyright 2014 - 2026 Copernica BV
  */
 #include "includes.h"
 #include <cstring>
@@ -177,7 +177,7 @@ void ClassImpl::callInvoke(INTERNAL_FUNCTION_PARAMETERS)
     catch (const NotImplemented &exception)
     {
         // because of the two-step nature, we are going to report the error ourselves
-        zend_error(E_ERROR, "Function name must be a string");
+        zend_error(E_ERROR, "__invoke() not implemented");
     }
     catch (Throwable &throwable)
     {
@@ -339,8 +339,8 @@ zend_result ClassImpl::getClosure(ZEND_OBJECT_OR_ZVAL object, zend_class_entry *
     ZSTR_VAL(zend_empty_string)[0] = '\0';
     ZSTR_LEN(zend_empty_string) = 0;
 #endif
-    function->function_name     = zend_empty_string;            // should not be null, as this is free'ed by zend when doing exception handling
-    function->scope             = *entry_ptr;
+    function->function_name     = zend_string_init("__invoke", sizeof("__invoke") - 1, 0);  // should not be null, as this is free'ed by zend when doing exception handling
+    function->scope             = object->ce;
     function->prototype         = nullptr;
     function->num_args          = 0;
     function->required_num_args = 0;
@@ -414,12 +414,22 @@ zend_object_handlers *ClassImpl::objectHandlers()
     // handler to cast to a different type
     _handlers.cast_object = &ClassImpl::cast;
 
+    // handler to get the classname
+    _handlers.get_class_name = &ClassImpl::getClassName;
+
     // method to compare two objects
 #if PHP_VERSION_ID < 80000
     _handlers.compare_objects = &ClassImpl::compare;
 #else
     _handlers.compare = &ClassImpl::compare;
 #endif
+
+    // @todo according to the zend_object_handlers.h header file are the following properties also required:
+    // zend_object_get_property_ptr_ptr_t get_property_ptr_ptr; /* required */
+    // zend_object_get_properties_t       get_properties;       /* required */
+    // zend_object_get_constructor_t      get_constructor;      /* required */
+    // zend_object_get_class_name_t       get_class_name;       /* required */
+    // zend_object_get_gc_t               get_gc;               /* required */
 
     // set the offset between our class implementation and
     // the zend_object member in the allocated structure
@@ -560,6 +570,17 @@ zend_result ClassImpl::cast(ZEND_OBJECT_OR_ZVAL val, zval *retval, int type)
         // done
         return FAILURE;
     }
+}
+
+/**
+ *  Get the classname, given an object
+ *  @param  object
+ *  @return zend_string*
+ */
+zend_string *ClassImpl::getClassName(const zend_object *object)
+{
+    // expose the classname
+    return object->ce->name;
 }
 
 /**
