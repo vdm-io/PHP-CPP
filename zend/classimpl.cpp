@@ -340,7 +340,11 @@ zend_result ClassImpl::getClosure(ZEND_OBJECT_OR_ZVAL object, zend_class_entry *
     ZSTR_LEN(zend_empty_string) = 0;
 #endif
     function->function_name     = zend_string_init("__invoke", sizeof("__invoke") - 1, 0);  // should not be null, as this is free'ed by zend when doing exception handling
+#if PHP_VERSION_ID < 80000
+    function->scope             = Z_OBJCE_P(object);
+#else
     function->scope             = object->ce;
+#endif
     function->prototype         = nullptr;
     function->num_args          = 0;
     function->required_num_args = 0;
